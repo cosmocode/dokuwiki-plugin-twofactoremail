@@ -8,7 +8,7 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 	 */
     public function canUse($user = null){
 		global $USERINFO;
-		return ($this->attribute->exists("twofactoremail", "verified", $user) && $this->attribute->exists("twofactoremail", "email", $success, $user) == $USERINFO['mail'] && $this->getConf('enable') === 1);
+		return ($this->_settingExists("verified", $user) && $this->_settingGet("email", '', $user) == $USERINFO['mail'] && $this->getConf('enable') === 1);
 	}
 	
 	/**
@@ -23,14 +23,19 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 	 */
     public function renderProfileForm(){
 		$elements = array();
+            if (!$this->_settingExists("email"))    {
+                // The user has not started the opt-in process with their email.
+                $elements[] = form_makeCheckboxField('email_start', '1', $this->getLang('startsetup'),'','block');
+            }
 			// If email has not been verified, then do so here.
-			if (!$this->attribute->exists("twofactoremail", "verified")) {
-				// Render the HTML to prompt for the verification/activation OTP.
-				$elements[] = '<span>'.$this->getLang('verifynotice').'</span>';				
-				$elements[] = form_makeTextField('email_verify', '', $this->getLang('verifymodule'), '', 'block', array('size'=>'50', 'autocomplete'=>'off'));
-				$elements[] = form_makeCheckboxField('email_send', '1', $this->getLang('resendcode'),'','block');
-			}			
 			else {
+                if (!$this->_settingExists("verified")) {
+                    // Render the HTML to prompt for the verification/activation OTP.
+                    $elements[] = '<span>'.$this->getLang('verifynotice').'</span>';				
+                    $elements[] = form_makeTextField('email_verify', '', $this->getLang('verifymodule'), '', 'block', array('size'=>'50', 'autocomplete'=>'off'));
+                    $elements[] = form_makeCheckboxField('email_send', '1', $this->getLang('resendcode'),'','block');
+                }			
+			
 				// Render the element to remove email.
 				$elements[] = form_makeCheckboxField('email_disable', '1', $this->getLang('killmodule'), '', 'block');
 			}
@@ -42,11 +47,25 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 	 */	
     public function processProfileForm(){
 		global $INPUT, $USERINFO;
+        
+        // Check if the stored email no longer matches the new email.
+        if ($this->_settingGet("email",'') != $USERINFO['mail']) {
+			// Delete the verified setting.
+			$this->_settingDelete("verified");
+			// Delete the email address copy.
+			$this->_settingDelete("email");
+            msg($this->getLang('newaddress'),-1);
+			return true;
+        }
+        
 		if ($INPUT->bool('email_disable', false)) {
 			// Delete the verified setting.
-			$this->attribute->del("twofactoremail", "verified");
+			$this->_settingDelete("verified");
+			// Delete the email address copy.
+			$this->_settingDelete("email");
 			return true;
 		}
+
 		$otp = $INPUT->str('email_verify', '');
 		if ($otp) { // The user will use email.
 			$checkResult = $this->processLogin($otp);
@@ -55,24 +74,26 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 				return 'failed';
 			}
 			else {
-				$this->attribute->set("twofactoremail", "verified", true);
+				$this->_settingSet("verified", true);
 				return 'verified';
 			}					
 		}							
 		
 		$changed = null;
-		$email = $INPUT->str('email', $USERINFO['mail']);
-		if ($email != $this->attribute->get("twofactoremail","email")) {
-			if ($this->attribute->set("twofactoremail","email", $email)== false) {
-				msg("TwoFactor: Error setting email.", -1);
-			}
-			// Delete the verification for the email if it was changed.
-			$this->attribute->del("twofactoremail", "verified");
-			$changed = true;
-		}
+		if ($INPUT->bool('email_start', false)) {
+            $email = $INPUT->str('email', $USERINFO['mail']);
+            if ($email != $this->_settingGet("email",'')) {
+                if ($this->_settingSet("email", $email)== false) {
+                    msg("TwoFactor: Error setting email.", -1);
+                }
+                // Delete the verification for the email if it was changed.
+                $this->_settingDelete("verified");
+                $changed = true;
+            }
+        }
 		
 		// If the data changed and we have everything needed to use this module, send an otp.
-		if ($changed && $this->attribute->exists("twofactoremail", "email")) {
+		if (($changed || $INPUT->bool('email_send', false)) && $this->_settingExists("email")) {
 			$changed = 'otp';
 		}
 		return $changed;
@@ -89,12 +110,11 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 	 * Transmit the message via email to the address on file.
 	 * As a special case, configure the mail settings to send only via text.
 	 */
-	public function transmitMessage($message, $force = false){		
+	public function transmitMessage($subject, $message, $force = false){		
 		if (!$this->canUse()  && !$force) { return false; }
-		$to = $this->attribute->get("twofactoremail", "email");
+		$to = $this->_settingGet("email");
 		// Create the email object.
 		$mail = new Mailer();
-		$subject = $conf['title'].' login verification';
 		$mail->to($to);
 		$mail->subject($subject);
 		$mail->setText($message);			
