@@ -49,7 +49,7 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 		global $INPUT, $USERINFO;
         
         // Check if the stored email no longer matches the new email.
-        if ($this->_settingGet("email",'') != $USERINFO['mail']) {
+        if ($this->_settingExists("verified") && $this->_settingGet("email",'') != $USERINFO['mail']) {
 			// Delete the verified setting.
 			$this->_settingDelete("verified");
 			// Delete the email address copy.
@@ -81,15 +81,12 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 		
 		$changed = null;
 		if ($INPUT->bool('email_start', false)) {
-            $email = $INPUT->str('email', $USERINFO['mail']);
-            if ($email != $this->_settingGet("email",'')) {
-                if ($this->_settingSet("email", $email)== false) {
-                    msg("TwoFactor: Error setting email.", -1);
-                }
-                // Delete the verification for the email if it was changed.
-                $this->_settingDelete("verified");
-                $changed = true;
+            if ($this->_settingSet("email", $USERINFO['mail'])== false) {
+                msg("TwoFactor: Error setting email.", -1);
             }
+            // Delete the verification for the email if it was changed.
+            $this->_settingDelete("verified");
+            $changed = true;            
         }
 		
 		// If the data changed and we have everything needed to use this module, send an otp.
