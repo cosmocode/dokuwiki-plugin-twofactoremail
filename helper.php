@@ -8,7 +8,7 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 	 */
     public function canUse($user = null){
 		global $USERINFO;
-		return ($this->_settingExists("verified", $user) && $this->_settingGet("email", '', $user) == $USERINFO['mail'] && $this->getConf('enable') === 1);
+		return ($this->_settingExists("verified", $user) && (empty($USERINFO) || $this->_settingGet("email", '', $user) == $USERINFO['mail']) && $this->getConf('enable') === 1);
 	}
 	
 	/**
@@ -63,7 +63,7 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 			$this->_settingDelete("verified");
 			// Delete the email address copy.
 			$this->_settingDelete("email");
-			return true;
+			return 'deleted';
 		}
 
 		$otp = $INPUT->str('email_verify', '');
@@ -81,6 +81,7 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
 		
 		$changed = null;
 		if ($INPUT->bool('email_start', false)) {
+            error_log('email_start');
             if ($this->_settingSet("email", $USERINFO['mail'])== false) {
                 msg("TwoFactor: Error setting email.", -1);
             }
@@ -90,7 +91,7 @@ class helper_plugin_twofactoremail extends Twofactor_Auth_Module {
         }
 		
 		// If the data changed and we have everything needed to use this module, send an otp.
-		if (($changed || $INPUT->bool('email_send', false)) && $this->_settingExists("email")) {
+		if (($changed || ($INPUT->bool('email_send', false)) && $this->_settingExists("email"))) {
 			$changed = 'otp';
 		}
 		return $changed;
