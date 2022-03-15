@@ -1,9 +1,7 @@
 <?php
-
 /**
- * Options for the twofactor_email plugin
- *
- * @author Mike Wilmes <mwilmes@avc.edu>
+ * Options for the twofactoraltemail plugin
  */
 
-$meta['enable'] = array('onoff');
+$meta['tolerance'] = array('int', '_min' => 2);
+

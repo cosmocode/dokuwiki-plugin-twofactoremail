@@ -1,8 +1,7 @@
 <?php
-
 /**
- * Default settings for the twofactor_email plugin
- * @author Mike Wilmes <mwilmes@avc.edu>
+ * Default settings for the twofactoraltemail plugin
  */
 
-$conf['enable'] = 0;
+$conf['tolerance']    = '6';
+
