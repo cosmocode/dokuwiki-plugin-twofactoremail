@@ -1,9 +1,6 @@
 <?php
 $lang['name'] = 'E-Mail';
 
-$lang['intro'] = 'Using this provider, a one-time login code will be sent to your e-mail address associated with your wiki account.';
-$lang['init'] = 'Enable this provider';
-$lang['configured'] = 'A login code will be sent to your standard e-mail address.';
 
 
 $lang['verifymodule'] = "Enter code sent by e-mail";

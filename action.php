@@ -12,7 +12,8 @@ class action_plugin_twofactoremail extends Provider
     /** @inheritdoc */
     public function getLabel()
     {
-        return $this->getLang('name');
+        global $USERINFO;
+        return $this->getLang('name') . ' ' . $USERINFO['mail'];
     }
 
     /** @inheritdoc */
@@ -24,19 +25,8 @@ class action_plugin_twofactoremail extends Provider
     /** @inheritdoc */
     public function renderProfileForm(Form $form)
     {
-        $verified = $this->settings->get('verified');
-        $secret = $this->settings->get('secret');
-
-        if (!$secret) {
-            $form->addHTML('<p>' . $this->getLang('intro') . '</p>');
-            $form->addCheckbox('email_init', $this->getLang('init'));
-        } elseif (!$verified) {
-            $form->addHTML('<p>' . $this->getLang('verifynotice') . '</p>');
-            $form->addTextInput('verify', $this->getLang('verifymodule'));
-        } else {
-            $form->addHTML('<p>' . $this->getLang('configured') . '</p>');
-        }
-
+        $form->addHTML('<p>' . $this->getLang('verifynotice') . '</p>');
+        $form->addTextInput('verify', $this->getLang('verifymodule'));
         return $form;
     }
 
@@ -45,19 +35,21 @@ class action_plugin_twofactoremail extends Provider
     {
         global $INPUT;
 
-        if ($INPUT->has('email_init')) {
+        if($INPUT->bool('init')) {
             $this->initSecret();
             $code = $this->generateCode();
-            $ok = $this->transmitMessage($code);
-            msg($ok, 1);
-        } elseif ($INPUT->has('verify')) {
+            $this->transmitMessage($code);
+        }
+
+        if ($INPUT->has('verify')) {
             if ($this->checkCode($INPUT->str('verify'))) {
                 $this->settings->set('verified', true);
             } else {
-                $this->settings->delete('secret');
+                // send a new code
+                $code = $this->generateCode();
+                $this->transmitMessage($code);
             }
         }
-
     }
 
     /** @inheritdoc */
