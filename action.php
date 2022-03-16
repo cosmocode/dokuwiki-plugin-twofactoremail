@@ -1,6 +1,7 @@
 <?php
 
 use dokuwiki\Form\Form;
+use dokuwiki\plugin\twofactor\OtpField;
 use dokuwiki\plugin\twofactor\Provider;
 
 /**
@@ -26,7 +27,7 @@ class action_plugin_twofactoremail extends Provider
     public function renderProfileForm(Form $form)
     {
         $form->addHTML('<p>' . $this->getLang('verifynotice') . '</p>');
-        $form->addTextInput('verify', $this->getLang('verifymodule'));
+        $form->addElement(new OtpField('verify'));
         return $form;
     }
 
