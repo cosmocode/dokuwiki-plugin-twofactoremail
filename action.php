@@ -56,8 +56,8 @@ class action_plugin_twofactoremail extends Provider
     /** @inheritdoc */
     public function transmitMessage($code)
     {
-        global $USERINFO;
-        $to = $USERINFO['mail'];
+        $userinfo = $this->getUserData();
+        $to = $userinfo['mail'] ?? '';
         if (!$to) throw new \Exception($this->getLang('codesentfail'));
 
         // Create the email object.
