@@ -1,7 +1,7 @@
 ﻿base   twofactoremail
 author Andreas Gohr, Michael Wilmes
 email  dokuwiki@cosmocode.de
-date   2023-07-11
+date   2026-01-28
 name   Two Factor Authentication - Email Plugin
 desc   Email support plugin for the Twofactor authentication plugin.
 url    https://www.dokuwiki.org/plugin:twofactoremail
